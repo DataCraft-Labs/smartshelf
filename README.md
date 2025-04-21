@@ -15,6 +15,10 @@ SmartShelf is an intelligent product management system designed to help stock ma
 - **Promotion Management**: Create and track promotions to reduce waste of near-expiry products
 - **Data Visualization**: Interactive charts and graphs for inventory trends and predictions
 
+## Demo
+
+<img src="demo.gif" width="800" />
+
 ## Project Structure
 
 The project is organized into three main components:
