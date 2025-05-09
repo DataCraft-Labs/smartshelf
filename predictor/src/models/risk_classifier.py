@@ -5,10 +5,9 @@ from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split, cross_val_score, KFold
 
 def treinar_modelo_risco(dados):
-    """
-    Treina um modelo XGBoost para prever o risco de vencimento.
-    """
-    caracteristicas = ['vida_util_restante', 'velocidade_vendas', 'dias_cobertura_estoque',
+    # Esta função treina um modelo XGBoost para prever o risco de vencimento
+    
+    caracteristicas = ['dias_em_estoque', 'unidades_vendidas_90dias', 'estoque_atual', 'vida_util_estimada',
                        'preco', 'eh_sazonal', 'cd_subsecao', 'cd_loja']
 
     # Garantir tipos corretos
