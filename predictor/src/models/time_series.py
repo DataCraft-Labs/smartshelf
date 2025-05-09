@@ -3,9 +3,8 @@ import pandas as pd
 from prophet import Prophet
 
 def treinar_modelo_tempo_vencimento(dados):
-    """
-    Utiliza Prophet para prever a velocidade de vendas futura.
-    """
+    # Esta função utiliza o algoritmo Prophet para prever a velocidade de vendas futura
+    
     modelos_vencimento = {}
 
     for lm in dados['LM'].unique():
