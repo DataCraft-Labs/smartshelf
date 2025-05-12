@@ -1,12 +1,9 @@
 import axios from 'axios';
 
-// Set the base URL for API requests
-// Use environment variable if available or local development endpoint
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = '/api';
 
 console.log("API is using base URL:", API_BASE_URL);
 
-// Create an axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -14,30 +11,25 @@ const api = axios.create({
   },
 });
 
-// Add an interceptor for debugging
 api.interceptors.request.use(config => {
   console.log(`Making request to: ${config.baseURL}${config.url}`);
   return config;
 });
 
-// API endpoints for products
 export const productsApi = {
-  // Get all products with optional filters
   getProducts: async (filters = {}) => {
     try {
-      const response = await api.get('/api/products', { params: filters });
+      const response = await api.get('/products', { params: filters });
       return response.data;
     } catch (error) {
       console.error('Error fetching products:', error);
-      // Return empty array as fallback
       return [];
     }
   },
   
-  // Get a specific product by ID
   getProductById: async (productId) => {
     try {
-      const response = await api.get(`/api/products/${productId}`);
+      const response = await api.get(`/products/${productId}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching product with ID ${productId}:`, error);
@@ -45,14 +37,12 @@ export const productsApi = {
     }
   },
   
-  // Get products on alert (near expiration)
   getProductAlerts: async (thresholdDays = 15) => {
     try {
-      const response = await api.get('/api/product-alerts', { 
+      const response = await api.get('/product-alerts', { 
         params: { threshold_days: String(thresholdDays) } 
       });
       console.log("Product alerts response:", response.data);
-      // If response isn't an array, use fallback data
       if (!Array.isArray(response.data)) {
         console.error("API returned non-array data for alerts:", response.data);
         return [
@@ -85,7 +75,6 @@ export const productsApi = {
       return response.data;
     } catch (error) {
       console.error('Error fetching product alerts:', error);
-      // Return fallback data on error
       return [
         { 
           product: {
@@ -116,14 +105,11 @@ export const productsApi = {
   }
 };
 
-// API endpoints for dashboard
 export const dashboardApi = {
-  // Get dashboard summary data
   getDashboardSummary: async () => {
     try {
-      const response = await api.get('/api/dashboard');
+      const response = await api.get('/dashboard');
       console.log("Dashboard summary response:", response.data);
-      // Ensure we have the expected properties or use default values
       const data = response.data || {};
       return {
         total_savings: data.total_savings || 33450,
@@ -133,7 +119,6 @@ export const dashboardApi = {
       };
     } catch (error) {
       console.error('Error fetching dashboard summary:', error);
-      // Return fallback data on error
       return {
         total_savings: 33450,
         active_promotions: 12,
@@ -143,10 +128,9 @@ export const dashboardApi = {
     }
   },
   
-  // Get dashboard trend data
   getDashboardTrends: async () => {
     try {
-      const response = await api.get('/api/dashboard/trends');
+      const response = await api.get('/dashboard/trends');
       console.log("Dashboard trends response:", response.data);
       return response.data || {
         savings_trend: { direction: "up", value: 5.2 },
@@ -156,7 +140,6 @@ export const dashboardApi = {
       };
     } catch (error) {
       console.error('Error fetching dashboard trends:', error);
-      // Return fallback data on error
       return {
         savings_trend: { direction: "up", value: 5.2 },
         promotions_trend: { direction: "up", value: 3.5 },
@@ -167,29 +150,26 @@ export const dashboardApi = {
   }
 };
 
-// API endpoints for recommendations
 export const recommendationsApi = {
-  // Get all recommendations with optional filtering by impact
   getRecommendations: async (impact = null) => {
     try {
       const params = impact ? { impact } : {};
-      const response = await api.get('/api/recommendations', { params });
+      const response = await api.get('/recommendations', { params });
       console.log("Recommendations response:", response.data);
       if (!Array.isArray(response.data)) {
         console.error("API returned non-array data for recommendations:", response.data);
-        return []; // Return empty array as fallback
+        return [];
       }
       return response.data;
     } catch (error) {
       console.error('Error fetching recommendations:', error);
-      return []; // Return empty array on error
+      return [];
     }
   },
   
-  // Provide feedback on a recommendation
   provideRecommendationFeedback: async (recommendationId, isUseful) => {
     try {
-      const response = await api.post(`/api/recommendations/${recommendationId}/feedback`, {
+      const response = await api.post(`/recommendations/${recommendationId}/feedback`, {
         is_useful: isUseful
       });
       return response.data;
@@ -199,10 +179,9 @@ export const recommendationsApi = {
     }
   },
   
-  // Generate a new recommendation based on category and store
   generateRecommendation: async (category = null, store = null) => {
     try {
-      const response = await api.post('/api/recommendations/generate', {
+      const response = await api.post('/recommendations/generate', {
         category,
         store
       });
@@ -213,10 +192,9 @@ export const recommendationsApi = {
     }
   },
   
-  // Get model status
   getModelStatus: async () => {
     try {
-      const response = await api.get('/api/recommendations/model-status');
+      const response = await api.get('/recommendations/model-status');
       return response.data;
     } catch (error) {
       console.error('Error fetching model status:', error);
@@ -225,12 +203,10 @@ export const recommendationsApi = {
   }
 };
 
-// API endpoints for chat
 export const chatApi = {
-  // Send a message to the chat API
   sendMessage: async (message, history = []) => {
     try {
-      const response = await api.post('/api/chat', {
+      const response = await api.post('/chat', {
         message,
         history
       });
@@ -244,14 +220,23 @@ export const chatApi = {
     }
   },
   
-  // Get model status
   getChatModelStatus: async () => {
     try {
-      const response = await api.get('/api/chat/model-status');
+      const response = await api.get('/chat/model-status');
       return response.data;
     } catch (error) {
-      console.error('Error fetching chat model status:', error);
+      console.error('Error getting chat model status:', error);
       return { models_loaded: false };
+    }
+  },
+  
+  getAgenticStatus: async () => {
+    try {
+      const response = await api.get('/chat/agentic-status');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting agentic status:', error);
+      return { agentic_available: false };
     }
   }
 };

@@ -3,17 +3,20 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    ports:
-      - "8000:8000"
+    # ports:
+    #   - "8000:8000"
+    expose:
+      - "8000"
     volumes:
       - ./backend:/app/backend
       - ./predictor:/app/predictor
       - backend_models:/app/backend/app/models/trained
+      - ./backend/.env:/app/backend/.env
     env_file:
       - ./backend/.env
     environment:
       - PYTHONUNBUFFERED=1
-      - BACKEND_CORS_ORIGINS=["http://localhost:3000","http://frontend:3000"]
+      - BACKEND_CORS_ORIGINS=["http://localhost:80","http://frontend:3000","http://nginx:80"]
       - DATABASE_URL=postgresql://smartshelf:smartshelf_password@db:5432/smartshelf_db
       - DEBUG=false
       - SECRET_KEY=${SECRET_KEY:-production-secret-key}
@@ -31,18 +34,31 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
+    # ports:
+    #   - "3000:3000"
+    expose:
+      - "3000"
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
     depends_on:
       - backend
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=/api
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
 
   db:
     image: postgres:15-alpine

@@ -5,11 +5,9 @@ import os
 from pathlib import Path
 import logging
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Try to import the predictor model modules
 try:
     from predictor.src.models.risk_classifier import treinar_modelo_risco
     from predictor.src.models.time_series import treinar_modelo_tempo_vencimento
@@ -25,13 +23,11 @@ except ImportError as e:
     PREDICTOR_AVAILABLE = False
     logger.warning(f"Failed to import predictor package: {e}")
 
-# Define both relative and absolute paths for model files
 BASE_DIR = Path(__file__).resolve().parent
 MODELS_DIR = BASE_DIR / "trained"
 RISK_MODEL_PATH = MODELS_DIR / "risk_model.joblib"
 TIME_SERIES_MODELS_PATH = MODELS_DIR / "time_series_models.joblib"
 
-# Alternative absolute paths
 ABSOLUTE_MODELS_DIR = Path("/app/backend/app/models/trained")
 ABSOLUTE_RISK_MODEL_PATH = ABSOLUTE_MODELS_DIR / "risk_model.joblib"
 ABSOLUTE_TIME_SERIES_MODELS_PATH = ABSOLUTE_MODELS_DIR / "time_series_models.joblib"
@@ -60,7 +56,6 @@ class PredictorService:
         logger.info(f"Absolute path - ABSOLUTE_TIME_SERIES_MODELS_PATH: {ABSOLUTE_TIME_SERIES_MODELS_PATH}")
         
         try:
-            # First try with relative paths
             if MODELS_DIR.exists():
                 logger.info(f"Models directory found at: {MODELS_DIR}")
                 
@@ -74,7 +69,6 @@ class PredictorService:
                     self.time_series_models = joblib.load(TIME_SERIES_MODELS_PATH)
                     logger.info("Time series models loaded successfully")
             
-            # If relative paths didn't work, try absolute paths
             elif ABSOLUTE_MODELS_DIR.exists():
                 logger.info(f"Models directory found at: {ABSOLUTE_MODELS_DIR}")
                 
@@ -114,29 +108,24 @@ class PredictorService:
         lower_message = message.lower()
         response_data = {"prediction_available": self.is_loaded}
         
-        # Extract relevant insights based on message content
         if "vencimento" in lower_message:
             response_data["category"] = "vencimento"
             if self.is_loaded:
-                # Here you would add actual predictions from the model
-                response_data["at_risk_count"] = 27  # Replace with actual model prediction
+                response_data["at_risk_count"] = 27
         
         elif "estoque" in lower_message:
             response_data["category"] = "estoque"
             if self.is_loaded:
-                # Add stock level predictions
                 response_data["current_stock_status"] = "adequate"
         
         elif "promoção" in lower_message or "promocao" in lower_message:
             response_data["category"] = "promocao"
             if self.is_loaded:
-                # Add promotion recommendations
                 response_data["active_promotions"] = 12
         
         elif "transferência" in lower_message or "transferencia" in lower_message:
             response_data["category"] = "transferencia"
             if self.is_loaded:
-                # Add transfer recommendations
                 response_data["suggested_transfers"] = ["Jardins - Produtos de Jardim"]
         
         return response_data
@@ -150,5 +139,4 @@ class PredictorService:
             "predictor_package_available": PREDICTOR_AVAILABLE
         }
 
-# Create a global instance of the predictor service
 predictor_service = PredictorService() 

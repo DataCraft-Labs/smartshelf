@@ -2,8 +2,8 @@ from fastapi import APIRouter, Body, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import logging
-from app.models.predictor import predictor_service
-from app.models.agentic import agentic_service
+from ..models.predictor import predictor_service
+from ..models.agentic import agentic_service
 
 # Configure logging - reduce verbosity
 logging.basicConfig(level=logging.WARNING)

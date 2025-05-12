@@ -3,15 +3,15 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 from datetime import date, datetime, timedelta
-from app.database import get_db
-from app.models.db_models import (
+from ..database import get_db
+from ..models.db_models import (
     Product as DBProduct,
     Category as DBCategory,
     Store as DBStore,
     InventoryItem as DBInventoryItem,
     DashboardStat as DBDashboardStat
 )
-from app.models.schemas import (
+from ..models.schemas import (
     Product,
     InventoryItemDetail,
     ProductAlert,

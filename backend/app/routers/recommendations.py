@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from datetime import datetime
-from app.database import get_db
-from app.models.db_models import (
+from ..database import get_db
+from ..models.db_models import (  
     Recommendation as DBRecommendation,
     RecommendationItem as DBRecommendationItem,
     InventoryItem as DBInventoryItem,
@@ -11,8 +11,8 @@ from app.models.db_models import (
     Category as DBCategory,
     Store as DBStore
 )
-from app.models.schemas import RecommendedAction
-from app.models.predictor import predictor_service
+from ..models.schemas import RecommendedAction
+from ..models.predictor import predictor_service
 import random
 from sqlalchemy.sql import text
 
@@ -21,10 +21,8 @@ router = APIRouter()
 @router.get("/recommendations", response_model=List[RecommendedAction])
 async def get_recommendations(impact: Optional[str] = None, db: Session = Depends(get_db)):
     """Get AI-generated recommendations for store management"""
-    # Check if predictor models are available
     model_status = predictor_service.get_model_status()
     
-    # Query database for recommendations
     query = db.query(DBRecommendation)
     
     if impact:
@@ -32,7 +30,6 @@ async def get_recommendations(impact: Optional[str] = None, db: Session = Depend
     
     recommendations = query.order_by(DBRecommendation.created_at.desc()).all()
     
-    # Convert to Pydantic models
     result = []
     for rec in recommendations:
         recommendation = RecommendedAction(
@@ -43,7 +40,6 @@ async def get_recommendations(impact: Optional[str] = None, db: Session = Depend
             is_useful=rec.is_useful
         )
         
-        # If models are loaded, enhance the recommendations with model insights
         if model_status["models_loaded"] and "ML" not in recommendation.title:
             recommendation.description += " (Recomendação baseada em modelo de ML)"
         
@@ -71,11 +67,9 @@ async def generate_recommendation(
     db: Session = Depends(get_db)
 ):
     """Generate a new recommendation based on product category and store"""
-    # Get model status
     model_status = predictor_service.get_model_status()
     model_based = model_status["models_loaded"]
     
-    # Get category ID if specified
     category_id = None
     category_value = "todas categorias"
     if category:
@@ -84,7 +78,6 @@ async def generate_recommendation(
             category_id = category_obj.id
             category_value = category_obj.name
     
-    # Get store ID if specified
     store_id = None
     store_value = "todas lojas"
     if store:
@@ -93,7 +86,6 @@ async def generate_recommendation(
             store_id = store_obj.id
             store_value = store_obj.name
     
-    # Find products that are expiring soon in this category/store
     expiring_products_query = """
         SELECT 
             p.name as product_name,
@@ -131,65 +123,54 @@ async def generate_recommendation(
         "Reposicionar produtos de {category} em áreas de maior visibilidade na loja {store}"
     ]
     
-    # If models are available, use this opportunity to generate more specific recommendations
     if model_based:
         recommendation_templates.append(
             "Com base em análise preditiva, recomendamos {action} para produtos de {category} "
             "na loja {store} para reduzir o risco de perdas em {risk_reduction}%"
         )
     
-    template = recommendation_templates[0]  # Default to first template
+    template = recommendation_templates[0]
     
-    # If we have expiring products, create a more specific recommendation
     if expiring_products:
-        # Get the first expiring product for the recommendation
         first_product = dict(expiring_products[0]._mapping)
         days_left = first_product["days_until_expiry"]
         product_name = first_product["product_name"]
         
-        # Determine appropriate discount based on days until expiry
         if days_left <= 7:
             discount = 30
-            template = recommendation_templates[0]  # Discount template
+            template = recommendation_templates[0]
         elif days_left <= 10:
             discount = 20
-            template = recommendation_templates[0]  # Discount template
+            template = recommendation_templates[0]
         elif days_left <= 15:
             discount = 15
-            template = recommendation_templates[3]  # Training template
+            template = recommendation_templates[3]
         
-        # If multiple products are expiring, consider transfer
         if len(expiring_products) > 2:
-            template = recommendation_templates[1]  # Transfer template
+            template = recommendation_templates[1]
     else:
-        # If no specific expiring products, use a generic template and discount
         discount = 15
         template_index = min(len(recommendation_templates) - 1, 2)
         template = recommendation_templates[template_index]
     
-    # Calculate real risk reduction based on product data
     risk_reduction = 0
     if expiring_products:
-        # Simple risk reduction calculation: average days until expiry converted to percentage
         total_days = sum(dict(p._mapping)["days_until_expiry"] for p in expiring_products)
         avg_days = total_days / len(expiring_products)
-        risk_reduction = min(round(100 - (avg_days * 5)), 45)  # Cap at 45%
+        risk_reduction = min(round(100 - (avg_days * 5)), 45)
     else:
-        risk_reduction = 20  # Default value
+        risk_reduction = 20
     
-    # Choose action based on data
     actions = ["redução de preço", "transferência", "campanha específica"]
-    action_index = 0  # Default to price reduction
+    action_index = 0
     
     if expiring_products:
-        # If products are expiring very soon, recommend price reduction
         if any(dict(p._mapping)["days_until_expiry"] <= 7 for p in expiring_products):
-            action_index = 0  # Price reduction
-        # If multiple products with decent shelf life, recommend transfer
+            action_index = 0
         elif len(expiring_products) > 2 and all(dict(p._mapping)["days_until_expiry"] > 10 for p in expiring_products):
-            action_index = 1  # Transfer
+            action_index = 1
         else:
-            action_index = 2  # Specific campaign
+            action_index = 2
     
     template_vars = {
         "category": category_value,
@@ -201,10 +182,8 @@ async def generate_recommendation(
     
     description = template.format(**template_vars)
     
-    # Determine recommendation type and impact based on real data
     recommendation_type = ["promotion", "transfer", "display", "training"][min(action_index, 3)]
     
-    # Determine impact level based on risk reduction
     if risk_reduction > 30:
         impact = "high"
     elif risk_reduction > 15:
@@ -212,7 +191,6 @@ async def generate_recommendation(
     else:
         impact = "low"
     
-    # Create new recommendation in the database
     new_recommendation = DBRecommendation(
         title=f"{'[ML] ' if model_based else ''}Nova Recomendação para {category_value}",
         description=description,
@@ -226,9 +204,7 @@ async def generate_recommendation(
     db.commit()
     db.refresh(new_recommendation)
     
-    # Link to inventory items
     if expiring_products and (category_id or store_id):
-        # Query for inventory items matching the expiring products
         inventory_query = (
             db.query(DBInventoryItem)
             .join(DBProduct, DBInventoryItem.product_id == DBProduct.id)
@@ -245,7 +221,6 @@ async def generate_recommendation(
         
         inventory_items = inventory_query.limit(3).all()
         
-        # Link recommendation to inventory items
         for item in inventory_items:
             recommendation_item = DBRecommendationItem(
                 recommendation_id=new_recommendation.id,
