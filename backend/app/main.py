@@ -40,9 +40,9 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(products.router, prefix="/api", tags=["products"])
-app.include_router(chat.router, prefix="/api", tags=["chat"])
-app.include_router(recommendations.router, prefix="/api", tags=["recommendations"])
+app.include_router(products.router, tags=["products"])
+app.include_router(chat.router, tags=["chat"])
+app.include_router(recommendations.router, tags=["recommendations"])
 
 @app.get("/")
 async def root():
@@ -52,7 +52,7 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
-@app.get("/api/test")
+@app.get("/test")
 async def test_api():
     """Simple test endpoint to verify API is working"""
     return [
